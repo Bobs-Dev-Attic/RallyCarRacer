@@ -169,7 +169,9 @@ export function useCarController({
       const rotation = controller.wheelRotation(i) ?? 0
       const suspension = controller.wheelSuspensionLength(i) ?? wheelCfg.suspensionRestLength
       const base = wheelCfgs[i].position
-      mesh.position.set(base.x, base.y - suspension + wheelCfg.suspensionRestLength, base.z)
+      // wheel hub sits at the suspension anchor extended downward by the
+      // current suspension length, so the tyre meets the ground
+      mesh.position.set(base.x, base.y - suspension, base.z)
       mesh.rotation.set(rotation, steering, 0, 'YXZ')
     }
 
