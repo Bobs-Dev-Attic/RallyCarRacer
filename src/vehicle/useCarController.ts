@@ -44,11 +44,22 @@ export function useCarController({
   const { world } = useRapier()
   const controllerRef = useRef<DynamicRayCastVehicleController | null>(null)
   const steerCurrent = useRef(0)
+  const engineCurrent = useRef(0)
 
   // Build the vehicle controller once the chassis rigid body exists.
   useEffect(() => {
     const body = chassisRef.current
     if (!body) return
+
+    // Force a low center of mass with inflated roll/pitch inertia so the car
+    // resists tipping. Overrides the collider-derived mass properties.
+    body.setAdditionalMassProperties(
+      chassisCfg.mass,
+      chassisCfg.centerOfMass,
+      chassisCfg.inertia,
+      { x: 0, y: 0, z: 0, w: 1 },
+      true,
+    )
 
     const controller = world.createVehicleController(body)
     controller.indexUpAxis = 1 // Y is up
@@ -112,8 +123,15 @@ export function useCarController({
       brake += drive.rollingResistance
     }
 
-    controller.setWheelEngineForce(REAR_LEFT, engine)
-    controller.setWheelEngineForce(REAR_RIGHT, engine)
+    // ramp engine force in/out so a stab of throttle can't spike torque and
+    // pitch the car over backwards on launch
+    engineCurrent.current = moveTowards(
+      engineCurrent.current,
+      engine,
+      drive.engineRamp * world.timestep,
+    )
+    controller.setWheelEngineForce(REAR_LEFT, engineCurrent.current)
+    controller.setWheelEngineForce(REAR_RIGHT, engineCurrent.current)
 
     const handbraking = active && input.handbrake
     const rearBrake = handbraking ? brake + drive.handbrakeForce : brake
@@ -128,6 +146,15 @@ export function useCarController({
     controller.setWheelFrictionSlip(REAR_RIGHT, rearGrip)
 
     controller.updateVehicle(world.timestep)
+
+    // Hard safety net: clamp angular speed so the car can never spin/flip out
+    // of control even after a big collision or landing.
+    const av = body.angvel()
+    const avMag = Math.hypot(av.x, av.y, av.z)
+    if (avMag > drive.maxAngVel) {
+      const k = drive.maxAngVel / avMag
+      body.setAngvel({ x: av.x * k, y: av.y * k, z: av.z * k }, true)
+    }
   })
 
   // Sync visual wheels and report speed each rendered frame.
