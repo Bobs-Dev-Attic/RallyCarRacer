@@ -15,17 +15,12 @@ export const chassis = {
   halfExtents: new THREE.Vector3(0.9, 0.35, 1.9),
   mass: 850,
   /**
-   * Center of mass, well below the chassis and near the wheel contact patch.
-   * A low CoM is the single most important factor in stopping the raycast
-   * vehicle from tipping over under engine torque or hard cornering.
+   * Principal angular inertia. Roll (z) and pitch (x) are inflated well above
+   * the physical box values so the car strongly resists flipping; yaw (y) is
+   * left moderate so steering stays responsive. (Center of mass height is
+   * driven by the tunable "stability" setting — see cgFromStability.)
    */
-  centerOfMass: new THREE.Vector3(0, -0.6, 0),
-  /**
-   * Principal angular inertia. Roll (z) and pitch (x) are inflated above the
-   * physical box values so the car strongly resists flipping; yaw (y) is left
-   * moderate so steering stays responsive.
-   */
-  inertia: new THREE.Vector3(1600, 1300, 900),
+  inertia: new THREE.Vector3(2200, 1300, 1600),
 }
 
 const wheelY = -0.25
@@ -74,9 +69,9 @@ export const drive = {
   /** km/h cap used only for the speed-sensitive steering curve */
   steerFalloffSpeed: 45,
   /** hard safety cap on angular speed (rad/s) so the car can never flip out */
-  maxAngVel: 4.0,
+  maxAngVel: 3.2,
   /** car is considered tipped when its up-vector Y falls below this */
-  flipUpThreshold: 0.4,
+  flipUpThreshold: 0.45,
   /** seconds tipped before the car auto-rights itself */
-  flipRecoverTime: 1.3,
+  flipRecoverTime: 1.0,
 }
