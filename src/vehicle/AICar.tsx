@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import type { RapierRigidBody } from '@react-three/rapier'
 import { Car, type CarHandle } from './Car'
-import { useAIController } from '../ai/useAIController'
-import { useGameStore } from '../store/useGameStore'
+import { useRoamController } from '../ai/useAIController'
 
 interface AICarProps {
   id: string
@@ -10,13 +9,12 @@ interface AICarProps {
   heading: number
   color: string
   skill: number
-  startIndex: number
+  seed: number
 }
 
-/** A computer-controlled opponent. Reuses the same physics as the player. */
-export function AICar({ id, position, heading, color, skill, startIndex }: AICarProps) {
+/** A computer-controlled car that wanders the desert. Same physics as the player. */
+export function AICar({ id, position, heading, color, skill, seed }: AICarProps) {
   const ref = useRef<CarHandle>(null)
-  const registerCar = useGameStore((s) => s.registerCar)
 
   // A stable ref-like view onto the (lazily mounted) chassis rigid body.
   const bodyRef = useMemo<React.RefObject<RapierRigidBody>>(
@@ -28,20 +26,9 @@ export function AICar({ id, position, heading, color, skill, startIndex }: AICar
     [],
   )
 
-  const { getInput } = useAIController({ bodyRef, skill, startIndex })
-
-  useEffect(() => {
-    registerCar(id, false)
-  }, [registerCar, id])
+  const { getInput } = useRoamController({ bodyRef, skill, seed })
 
   return (
-    <Car
-      ref={ref}
-      carId={id}
-      position={position}
-      heading={heading}
-      color={color}
-      getInput={getInput}
-    />
+    <Car ref={ref} carId={id} position={position} heading={heading} color={color} getInput={getInput} />
   )
 }

@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react'
 import type { RapierRigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
-import { WAYPOINTS } from '../scene/trackData'
+import { HALF } from '../scene/desert'
 import { createInput, type InputState } from '../types'
 import { clamp, angleDelta } from '../utils/math'
 import { drive } from '../vehicle/carConfig'
@@ -12,27 +12,28 @@ const quat = new THREE.Quaternion()
 const toTarget = new THREE.Vector3()
 const fwd = new THREE.Vector3()
 
-const ARRIVE_RADIUS = 8
-const LOOKAHEAD = 2 // waypoints ahead used to anticipate corners
+const ARRIVE_RADIUS = 12
+const ROAM = HALF - 30 // keep wandering targets inside the desert
 
-export interface AIOptions {
+export interface RoamOptions {
   bodyRef: React.RefObject<RapierRigidBody>
-  /** 0..1 skill: higher corners faster and steers more precisely */
+  /** 0..1 skill: higher cruises faster */
   skill?: number
-  /** start index offset so cars don't all chase the same point */
-  startIndex?: number
+  seed?: number
 }
 
 /**
- * Produces an InputState for an AI car by steering toward the next point on the
- * racing line and modulating throttle/brake by the upcoming corner sharpness.
- * Deterministic and allocation-free in the hot path.
+ * Drives an AI car to wander the open desert: pick a random destination, steer
+ * toward it, slow for sharp heading changes, and on arrival pick a new one.
  */
-export function useAIController({ bodyRef, skill = 0.85, startIndex = 0 }: AIOptions) {
+export function useRoamController({ bodyRef, skill = 0.85, seed = 0 }: RoamOptions) {
   const input = useRef<InputState>(createInput())
-  const wpIndex = useRef(startIndex % WAYPOINTS.length)
+  const target = useRef(new THREE.Vector3((((seed * 53) % 200) - 100), 0, (((seed * 97) % 200) - 100)))
   const stuckTimer = useRef(0)
-  const lastStep = useRef(0)
+
+  const pickTarget = () => {
+    target.current.set((Math.random() - 0.5) * 2 * ROAM, 0, (Math.random() - 0.5) * 2 * ROAM)
+  }
 
   const getInput = useCallback(() => {
     const body = bodyRef.current
@@ -43,63 +44,53 @@ export function useAIController({ bodyRef, skill = 0.85, startIndex = 0 }: AIOpt
     const r = body.rotation()
     quat.set(r.x, r.y, r.z, r.w)
 
-    // advance the target waypoint once we're close enough
-    let target = WAYPOINTS[wpIndex.current]
-    if (pos.distanceTo(target) < ARRIVE_RADIUS) {
-      wpIndex.current = (wpIndex.current + 1) % WAYPOINTS.length
-      target = WAYPOINTS[wpIndex.current]
-    }
+    if (pos.distanceTo(target.current) < ARRIVE_RADIUS) pickTarget()
 
-    // heading error toward the target (in world XZ)
-    toTarget.copy(target).sub(pos).setY(0)
+    // heading error toward the target (world XZ)
+    toTarget.copy(target.current).sub(pos).setY(0)
     const targetHeading = Math.atan2(toTarget.x, toTarget.z)
     fwd.set(0, 0, 1).applyQuaternion(quat)
     const carHeading = Math.atan2(fwd.x, fwd.z)
     const err = angleDelta(carHeading, targetHeading)
 
+    // controller's positive steer turns left, AI sign matches that convention
     input.current.steer = clamp(err / drive.maxSteer, -1, 1)
 
-    // corner anticipation: angle between this segment and the one a few ahead
-    const ahead = WAYPOINTS[(wpIndex.current + LOOKAHEAD) % WAYPOINTS.length]
-    const cornerAngle = Math.abs(angleDelta(carHeading, Math.atan2(ahead.x - pos.x, ahead.z - pos.z)))
-    const corner01 = clamp(cornerAngle / (Math.PI * 0.6), 0, 1)
-
-    // speed control via throttle/brake
+    // speed control: ease off when we need to turn hard
     const vel = body.linvel()
     const speed = Math.hypot(vel.x, vel.z)
-    const maxSpeed = 14 + skill * 14 // m/s
-    const targetSpeed = THREE.MathUtils.lerp(maxSpeed, 5, corner01)
-
+    const turnSharp = Math.min(Math.abs(err) / 1.2, 1)
+    const maxSpeed = 12 + skill * 12
+    const targetSpeed = THREE.MathUtils.lerp(maxSpeed, 5, turnSharp)
     if (speed < targetSpeed) {
       input.current.throttle = 1
       input.current.brake = 0
-    } else if (speed > targetSpeed * 1.18) {
+    } else if (speed > targetSpeed * 1.2) {
       input.current.throttle = 0
-      input.current.brake = 0.6
+      input.current.brake = 0.5
     } else {
-      input.current.throttle = 0.3
+      input.current.throttle = 0.35
       input.current.brake = 0
     }
-    // drift into very sharp corners
-    input.current.handbrake = corner01 > 0.85 && speed > 10
+    input.current.handbrake = false
     input.current.reverse = false
 
-    // stuck recovery: if barely moving for a while, back up and turn out
-    const now = lastStep.current++
+    // stuck recovery: hit a rock/ditch? back up, turn away, pick a new target
     if (speed < 1.5) stuckTimer.current += 1
     else stuckTimer.current = 0
-    if (stuckTimer.current > 90) {
+    if (stuckTimer.current > 80) {
       input.current.throttle = 0
       input.current.brake = 0
-      input.current.handbrake = false
       input.current.reverse = true
       input.current.steer *= -1
-      if (stuckTimer.current > 150) stuckTimer.current = 0
+      if (stuckTimer.current > 150) {
+        stuckTimer.current = 0
+        pickTarget()
+      }
     }
-    void now
 
     return input.current
   }, [bodyRef, skill])
 
-  return { getInput, wpIndex }
+  return { getInput }
 }

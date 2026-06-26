@@ -1,52 +1,50 @@
 import { useRef } from 'react'
 import { Physics } from '@react-three/rapier'
-import { Track } from './Track'
-import { Checkpoints } from './Checkpoints'
-import { RaceDirector } from './RaceDirector'
+import { Desert } from './Desert'
 import { PlayerCar } from '../vehicle/PlayerCar'
 import { AICar } from '../vehicle/AICar'
+import { Dust } from '../vehicle/Dust'
 import { CameraRig } from '../camera/CameraRig'
 import type { CarHandle } from '../vehicle/Car'
-import { gridSlot } from './trackData'
+import { spawnSlot } from './desert'
 
 const DEBUG_PHYSICS = false
 
 const OPPONENTS = [
-  { id: 'ai-1', color: '#457b9d', skill: 0.92 },
-  { id: 'ai-2', color: '#f4a261', skill: 0.84 },
-  { id: 'ai-3', color: '#2a9d8f', skill: 0.88 },
+  { id: 'ai-1', color: '#457b9d', skill: 0.9, seed: 3 },
+  { id: 'ai-2', color: '#f4a261', skill: 0.8, seed: 11 },
+  { id: 'ai-3', color: '#9b5de5', skill: 0.86, seed: 19 },
 ]
 
 export function Scene() {
   const playerRef = useRef<CarHandle>(null)
-  const playerSlot = gridSlot(0)
+  const playerSlot = spawnSlot(0)
 
   return (
     <>
-      {/* sky + ground lighting */}
-      <hemisphereLight args={['#bcd3ff', '#6b5b3a', 0.7]} />
+      {/* bright desert sun */}
+      <hemisphereLight args={['#cfe0ff', '#caa777', 0.85]} />
       <directionalLight
-        position={[40, 60, 20]}
-        intensity={1.6}
+        position={[60, 90, 30]}
+        intensity={1.9}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
         shadow-camera-near={1}
-        shadow-camera-far={320}
-        shadow-camera-left={-140}
-        shadow-camera-right={140}
-        shadow-camera-top={140}
-        shadow-camera-bottom={-140}
+        shadow-camera-far={400}
+        shadow-camera-left={-160}
+        shadow-camera-right={160}
+        shadow-camera-top={160}
+        shadow-camera-bottom={-160}
       />
 
       <Physics timeStep={1 / 60} gravity={[0, -9.81, 0]} debug={DEBUG_PHYSICS}>
-        <Track />
-        <Checkpoints debug={DEBUG_PHYSICS} />
+        <Desert />
 
         <PlayerCar ref={playerRef} position={playerSlot.position} heading={playerSlot.heading} />
 
         {OPPONENTS.map((o, i) => {
-          const slot = gridSlot(i + 1)
+          const slot = spawnSlot(i + 1)
           return (
             <AICar
               key={o.id}
@@ -55,12 +53,12 @@ export function Scene() {
               heading={slot.heading}
               color={o.color}
               skill={o.skill}
-              startIndex={2}
+              seed={o.seed}
             />
           )
         })}
 
-        <RaceDirector />
+        <Dust playerRef={playerRef} />
       </Physics>
 
       <CameraRig playerRef={playerRef} />
