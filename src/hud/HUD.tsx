@@ -1,5 +1,6 @@
 import { useGameStore, TOTAL_LAPS } from '../store/useGameStore'
 import { TouchControls } from './TouchControls'
+import { VERSION_LABEL } from '../version'
 
 function fmt(t: number) {
   if (!isFinite(t) || t <= 0) return '--:--'
@@ -27,6 +28,9 @@ export function HUD() {
 
   return (
     <>
+      {/* Build/version tag — always visible so you can confirm the deployed build */}
+      <div className="version-tag">{VERSION_LABEL}</div>
+
       {/* In-race HUD + touch controls */}
       {racing && (
         <>
@@ -83,6 +87,7 @@ export function HUD() {
             <button className="cta" onClick={startRace}>
               ▶ Start Race
             </button>
+            <div className="panel-version">{VERSION_LABEL}</div>
           </div>
         </div>
       )}

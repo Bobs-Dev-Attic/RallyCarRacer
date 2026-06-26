@@ -52,11 +52,9 @@ export const Car = forwardRef<CarHandle, CarProps>(function Car(
       userData={{ carId }}
       ccd
     >
-      {/* low collider so the center of mass sits near the ground */}
-      <CuboidCollider
-        args={[he.x, he.y, he.z]}
-        position={[0, chassisCfg.comOffset.y + he.y, 0]}
-      />
+      {/* collision box around the chassis; the low center of mass is set
+          separately on the rigid body in useCarController */}
+      <CuboidCollider args={[he.x, he.y, he.z]} position={[0, 0, 0]} />
 
       {/* body shell */}
       <mesh castShadow position={[0, 0.15, 0]}>
