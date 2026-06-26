@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import type { Object3D } from 'three'
 import type { InputState } from '../types'
 import { useGameStore } from '../store/useGameStore'
-import { DEFAULT_TUNING, type CarTuning } from '../store/useSettingsStore'
+import { DEFAULT_TUNING, cgFromStability, type CarTuning } from '../store/useSettingsStore'
 import { clamp, moveTowards } from '../utils/math'
 import {
   chassis as chassisCfg,
@@ -57,6 +57,8 @@ export function useCarController({
   const steerCurrent = useRef(0)
   const engineCurrent = useRef(0)
   const tipTimer = useRef(0)
+  const appliedStability = useRef(NaN)
+  const comScratch = useRef(new THREE.Vector3())
 
   // Build the vehicle controller once the chassis rigid body exists.
   useEffect(() => {
@@ -64,14 +66,19 @@ export function useCarController({
     if (!body) return
 
     // Force a low center of mass with inflated roll/pitch inertia so the car
-    // resists tipping. Overrides the collider-derived mass properties.
+    // resists tipping. Overrides the collider-derived mass properties. The CoM
+    // height is driven by the tunable stability setting and re-applied live in
+    // the step loop when it changes.
+    const stability = (getTuning ? getTuning() : DEFAULT_TUNING).stability
+    comScratch.current.set(0, cgFromStability(stability), 0)
     body.setAdditionalMassProperties(
       chassisCfg.mass,
-      chassisCfg.centerOfMass,
+      comScratch.current,
       chassisCfg.inertia,
       { x: 0, y: 0, z: 0, w: 1 },
       true,
     )
+    appliedStability.current = stability
 
     const controller = world.createVehicleController(body)
     controller.indexUpAxis = 1 // Y is up
@@ -104,6 +111,19 @@ export function useCarController({
     const input = getInput()
     const tuning = getTuning ? getTuning() : DEFAULT_TUNING
     const active = useGameStore.getState().phase === 'racing'
+
+    // re-apply center of mass when the stability setting changes (live tuning)
+    if (tuning.stability !== appliedStability.current) {
+      comScratch.current.set(0, cgFromStability(tuning.stability), 0)
+      body.setAdditionalMassProperties(
+        chassisCfg.mass,
+        comScratch.current,
+        chassisCfg.inertia,
+        { x: 0, y: 0, z: 0, w: 1 },
+        true,
+      )
+      appliedStability.current = tuning.stability
+    }
     const speed = controller.currentVehicleSpeed() // m/s, signed
     const speedKmh = Math.abs(speed) * 3.6
 
