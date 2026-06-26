@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useRef, useImperativeHandle } from 'react'
+import { forwardRef, useCallback, useRef, useImperativeHandle } from 'react'
 import { Car, type CarHandle } from './Car'
 import { readPlayerInput } from '../controls/playerInput'
 import { useKeyboardInput } from '../controls/useKeyboardInput'
@@ -22,13 +22,8 @@ export const PlayerCar = forwardRef<CarHandle, PlayerCarProps>(function PlayerCa
   const carRef = useRef<CarHandle>(null)
   useImperativeHandle(ref, () => carRef.current as CarHandle, [])
   useKeyboardInput()
-  const registerCar = useGameStore((s) => s.registerCar)
   const setSpeed = useGameStore((s) => s.setSpeed)
   const lastSpeedPush = useRef(0)
-
-  useEffect(() => {
-    registerCar(PLAYER_ID, true)
-  }, [registerCar])
 
   // throttle HUD speed updates to ~10Hz to avoid thrashing React
   const onSpeed = useCallback(
