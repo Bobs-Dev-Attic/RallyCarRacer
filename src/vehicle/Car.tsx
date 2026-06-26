@@ -5,6 +5,7 @@ import type { Object3D } from 'three'
 import { useCarController } from './useCarController'
 import { chassis as chassisCfg, wheels as wheelCfgs, wheel as wheelCfg } from './carConfig'
 import type { InputState } from '../types'
+import type { CarTuning } from '../store/useSettingsStore'
 
 export interface CarHandle {
   body: React.RefObject<RapierRigidBody>
@@ -16,6 +17,7 @@ interface CarProps {
   heading: number
   color: string
   getInput: () => InputState
+  getTuning?: () => CarTuning
   onSpeed?: (kmh: number) => void
 }
 
@@ -27,7 +29,7 @@ const wheelMat = new THREE.MeshStandardMaterial({ color: '#15151a', roughness: 0
  * collider (wheels are visual only), driven by the shared vehicle controller.
  */
 export const Car = forwardRef<CarHandle, CarProps>(function Car(
-  { carId, position, heading, color, getInput, onSpeed },
+  { carId, position, heading, color, getInput, getTuning, onSpeed },
   ref,
 ) {
   const body = useRef<RapierRigidBody>(null)
@@ -35,7 +37,7 @@ export const Car = forwardRef<CarHandle, CarProps>(function Car(
 
   useImperativeHandle(ref, () => ({ body }), [])
 
-  useCarController({ chassisRef: body, wheelRefs: wheelRefs.current, getInput, onSpeed })
+  useCarController({ chassisRef: body, wheelRefs: wheelRefs.current, getInput, getTuning, onSpeed })
 
   const he = chassisCfg.halfExtents
 

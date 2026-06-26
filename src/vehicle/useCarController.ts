@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import type { Object3D } from 'three'
 import type { InputState } from '../types'
 import { useGameStore } from '../store/useGameStore'
+import { DEFAULT_TUNING, type CarTuning } from '../store/useSettingsStore'
 import { clamp, moveTowards } from '../utils/math'
 import {
   chassis as chassisCfg,
@@ -26,6 +27,8 @@ export interface CarControllerOptions {
   wheelRefs: React.RefObject<Object3D>[]
   /** returns the latest control input each physics step */
   getInput: () => InputState
+  /** returns the live car tuning each step (defaults to DEFAULT_TUNING) */
+  getTuning?: () => CarTuning
   /** called every frame with current forward speed in km/h (optional) */
   onSpeed?: (kmh: number) => void
 }
@@ -39,6 +42,7 @@ export function useCarController({
   chassisRef,
   wheelRefs,
   getInput,
+  getTuning,
   onSpeed,
 }: CarControllerOptions) {
   const { world } = useRapier()
@@ -90,27 +94,40 @@ export function useCarController({
     if (!controller || !body) return
 
     const input = getInput()
+    const tuning = getTuning ? getTuning() : DEFAULT_TUNING
     const active = useGameStore.getState().phase === 'racing'
     const speed = controller.currentVehicleSpeed() // m/s, signed
     const speedKmh = Math.abs(speed) * 3.6
 
+    // --- Apply live suspension tuning (cheap; lets the menu update in real time) ---
+    for (let i = 0; i < wheelCfgs.length; i++) {
+      controller.setWheelSuspensionStiffness(i, tuning.suspensionStiffness)
+      controller.setWheelSuspensionCompression(i, tuning.suspensionDamping)
+      controller.setWheelSuspensionRelaxation(i, tuning.suspensionDamping)
+    }
+    // front grip a touch higher than rear for a controllable rally oversteer
+    controller.setWheelFrictionSlip(FRONT_LEFT, tuning.tireGrip * 1.05)
+    controller.setWheelFrictionSlip(FRONT_RIGHT, tuning.tireGrip * 1.05)
+
     // --- Steering: speed-sensitive max angle, smoothed toward target ---
+    // NOTE: the controller's positive steering angle turns the car left, so the
+    // applied angle is negated to honour the InputState convention (+1 = right).
     const falloff = 1 - drive.steerSpeedFalloff * clamp(speedKmh / drive.steerFalloffSpeed, 0, 1)
-    const targetSteer = (active ? input.steer : 0) * drive.maxSteer * falloff
+    const targetSteer = (active ? input.steer : 0) * tuning.steering * falloff
     steerCurrent.current = moveTowards(
       steerCurrent.current,
       targetSteer,
       drive.steerRate * world.timestep,
     )
-    controller.setWheelSteering(FRONT_LEFT, steerCurrent.current)
-    controller.setWheelSteering(FRONT_RIGHT, steerCurrent.current)
+    controller.setWheelSteering(FRONT_LEFT, -steerCurrent.current)
+    controller.setWheelSteering(FRONT_RIGHT, -steerCurrent.current)
 
     // --- Engine / brake (rear-wheel drive for a rally feel) ---
     let engine = 0
     let brake = 0
     if (active) {
       if (input.throttle > 0) {
-        engine = input.throttle * drive.engineForce
+        engine = input.throttle * tuning.enginePower
       }
       if (input.brake > 0) {
         // brake when moving forward, otherwise drive in reverse
@@ -141,7 +158,7 @@ export function useCarController({
     controller.setWheelBrake(REAR_RIGHT, rearBrake)
 
     // handbrake breaks rear traction for a controllable drift
-    const rearGrip = handbraking ? wheelCfg.frictionHandbrake : wheelCfg.frictionRear
+    const rearGrip = handbraking ? wheelCfg.frictionHandbrake : tuning.tireGrip * 0.92
     controller.setWheelFrictionSlip(REAR_LEFT, rearGrip)
     controller.setWheelFrictionSlip(REAR_RIGHT, rearGrip)
 

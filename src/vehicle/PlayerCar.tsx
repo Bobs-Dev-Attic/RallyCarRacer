@@ -3,6 +3,9 @@ import { Car, type CarHandle } from './Car'
 import { readPlayerInput } from '../controls/playerInput'
 import { useKeyboardInput } from '../controls/useKeyboardInput'
 import { useGameStore } from '../store/useGameStore'
+import { useSettingsStore } from '../store/useSettingsStore'
+
+const readTuning = () => useSettingsStore.getState().tuning
 
 const PLAYER_ID = 'player'
 
@@ -47,6 +50,7 @@ export const PlayerCar = forwardRef<CarHandle, PlayerCarProps>(function PlayerCa
       heading={heading}
       color="#e63946"
       getInput={readPlayerInput}
+      getTuning={readTuning}
       onSpeed={onSpeed}
     />
   )
