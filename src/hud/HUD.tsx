@@ -87,6 +87,7 @@ export function HUD() {
             <button className="cta" onClick={startRace}>
               ▶ Start Race
             </button>
+            <div className="panel-version">{VERSION_LABEL}</div>
           </div>
         </div>
       )}
