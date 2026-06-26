@@ -18,7 +18,7 @@ export default function App() {
         camera={{ position: [0, 6, -14], fov: 60, near: 0.3, far: 400 }}
       >
         <color attach="background" args={[SKY]} />
-        <fog attach="fog" args={[SKY, 70, 240]} />
+        <fog attach="fog" args={[SKY, 110, 340]} />
 
         {/* drop resolution automatically if the framerate sags on weaker phones */}
         <PerformanceMonitor

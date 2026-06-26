@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useGameStore, TOTAL_LAPS } from '../store/useGameStore'
 import { TouchControls } from './TouchControls'
 import { SettingsPanel } from './SettingsPanel'
+import { Minimap } from './Minimap'
 import { VERSION_LABEL } from '../version'
 
 function fmt(t: number) {
@@ -61,6 +62,9 @@ export function HUD() {
             <button className="btn cam-toggle" onClick={toggleCamera}>
               {cameraMode === 'chase' ? '◎ Chase' : '▣ Top-down'}
             </button>
+
+            <Minimap />
+
 
             <div className="speedo">
               <span className="kmh">{Math.round(speedKmh)}</span>

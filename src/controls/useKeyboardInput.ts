@@ -27,7 +27,8 @@ export function useKeyboardInput() {
       const back = keys['ArrowDown'] || keys['KeyS']
       keyboard.steer = (left ? -1 : 0) + (right ? 1 : 0)
       keyboard.throttle = fwd ? 1 : 0
-      keyboard.brake = back ? 1 : 0
+      keyboard.brake = 0
+      keyboard.reverse = back // brakes then reverses (handled in the controller)
       keyboard.handbrake = !!keys['Space']
       raf = requestAnimationFrame(poll)
     }

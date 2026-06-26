@@ -7,7 +7,7 @@ import { scatterProps } from './trackGeometry'
  * (trunks + canopies). Visual only — kept cheap for mobile.
  */
 export function Trees() {
-  const trees = useMemo(() => scatterProps(180, 7), [])
+  const trees = useMemo(() => scatterProps(300, 7), [])
 
   return (
     <group>

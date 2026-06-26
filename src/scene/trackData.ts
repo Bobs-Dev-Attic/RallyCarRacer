@@ -7,14 +7,18 @@ import * as THREE from 'three'
  * one curve so they always stay in sync.
  */
 const CONTROL_POINTS: [number, number][] = [
-  [0, 40],
-  [38, 32],
-  [50, -4],
-  [28, -40],
-  [-8, -48],
-  [-40, -30],
-  [-52, 6],
-  [-34, 40],
+  [0, 110],
+  [55, 96],
+  [82, 52],
+  [66, 8],
+  [98, -38],
+  [62, -86],
+  [6, -102],
+  [-46, -88],
+  [-92, -50],
+  [-70, -2],
+  [-98, 48],
+  [-52, 96],
 ]
 
 export const TRACK_WIDTH = 9 // half-width of the drivable ribbon
@@ -27,7 +31,7 @@ export const curve = new THREE.CatmullRomCurve3(
 )
 
 /** Densely sampled centerline points, evenly spaced along the curve. */
-export const CENTERLINE: THREE.Vector3[] = curve.getSpacedPoints(220)
+export const CENTERLINE: THREE.Vector3[] = curve.getSpacedPoints(380)
 
 /** Tangent (forward) direction at each centerline sample. */
 export const TANGENTS: THREE.Vector3[] = CENTERLINE.map((_, i) =>
@@ -43,7 +47,7 @@ export interface Checkpoint {
 
 /** Evenly spaced ordered gates around the loop; gate 0 is the start/finish. */
 export const CHECKPOINTS: Checkpoint[] = (() => {
-  const count = 12
+  const count = 18
   const out: Checkpoint[] = []
   for (let i = 0; i < count; i++) {
     const t = i / count
@@ -62,7 +66,7 @@ export const START = CHECKPOINTS[0]
 
 /** Racing line the AI follows — the centerline sampled a bit coarser. */
 export const WAYPOINTS: THREE.Vector3[] = curve
-  .getSpacedPoints(64)
+  .getSpacedPoints(110)
   .map((p) => new THREE.Vector3(p.x, 0, p.z))
 
 /**

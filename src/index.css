@@ -68,6 +68,16 @@ canvas {
   font-weight: 700;
 }
 
+.minimap {
+  position: absolute;
+  top: 64px;
+  right: 12px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 4px;
+  backdrop-filter: blur(6px);
+}
+
 .speedo {
   position: absolute;
   right: 16px;
@@ -166,11 +176,11 @@ canvas {
   height: 76px;
   background: #e63946;
 }
-.pedal.hand {
+.pedal.reverse {
   width: 64px;
   height: 64px;
   background: #6c5ce7;
-  font-size: 12px;
+  font-size: 13px;
 }
 .pedal:active,
 .pedal.pressed {
