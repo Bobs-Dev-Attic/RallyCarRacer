@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useGameStore, TOTAL_LAPS } from '../store/useGameStore'
 import { TouchControls } from './TouchControls'
+import { SettingsPanel } from './SettingsPanel'
 import { VERSION_LABEL } from '../version'
 
 function fmt(t: number) {
@@ -23,6 +25,8 @@ export function HUD() {
   const cameraMode = useGameStore((s) => s.cameraMode)
   const toggleCamera = useGameStore((s) => s.toggleCamera)
   const startRace = useGameStore((s) => s.startRace)
+
+  const [showSettings, setShowSettings] = useState(false)
 
   const racing = phase === 'racing' || phase === 'countdown'
 
@@ -84,9 +88,14 @@ export function HUD() {
               <br />
               Drag the wheel to steer · GAS / BRAKE / DRIFT
             </p>
-            <button className="cta" onClick={startRace}>
-              ▶ Start Race
-            </button>
+            <div className="menu-buttons">
+              <button className="cta" onClick={startRace}>
+                ▶ Start Race
+              </button>
+              <button className="btn ghost icon-btn" onClick={() => setShowSettings(true)}>
+                ⚙ Tune Car
+              </button>
+            </div>
             <div className="panel-version">{VERSION_LABEL}</div>
           </div>
         </div>
@@ -108,12 +117,20 @@ export function HUD() {
               <span>Best</span>
               <span>{fmt(bestLap ?? 0)}</span>
             </div>
-            <button className="cta" style={{ marginTop: 18 }} onClick={startRace}>
-              ↻ Race Again
-            </button>
+            <div className="menu-buttons" style={{ marginTop: 18 }}>
+              <button className="cta" onClick={startRace}>
+                ↻ Race Again
+              </button>
+              <button className="btn ghost icon-btn" onClick={() => setShowSettings(true)}>
+                ⚙ Tune Car
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Car tuning menu */}
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
     </>
   )
 }
