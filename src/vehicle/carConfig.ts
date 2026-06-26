@@ -75,4 +75,8 @@ export const drive = {
   steerFalloffSpeed: 45,
   /** hard safety cap on angular speed (rad/s) so the car can never flip out */
   maxAngVel: 4.0,
+  /** car is considered tipped when its up-vector Y falls below this */
+  flipUpThreshold: 0.4,
+  /** seconds tipped before the car auto-rights itself */
+  flipRecoverTime: 1.3,
 }

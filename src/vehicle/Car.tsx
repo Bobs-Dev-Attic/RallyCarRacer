@@ -1,11 +1,13 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { RigidBody, CuboidCollider, type RapierRigidBody } from '@react-three/rapier'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { Object3D } from 'three'
 import { useCarController } from './useCarController'
 import { chassis as chassisCfg, wheels as wheelCfgs, wheel as wheelCfg } from './carConfig'
 import type { InputState } from '../types'
 import type { CarTuning } from '../store/useSettingsStore'
+import { registerBlip, updateBlip, removeBlip } from '../scene/carTracker'
 
 export interface CarHandle {
   body: React.RefObject<RapierRigidBody>
@@ -38,6 +40,17 @@ export const Car = forwardRef<CarHandle, CarProps>(function Car(
   useImperativeHandle(ref, () => ({ body }), [])
 
   useCarController({ chassisRef: body, wheelRefs: wheelRefs.current, getInput, getTuning, onSpeed })
+
+  // feed the minimap
+  const isPlayer = carId === 'player'
+  useEffect(() => {
+    registerBlip(carId, color, isPlayer)
+    return () => removeBlip(carId)
+  }, [carId, color, isPlayer])
+  useFrame(() => {
+    const t = body.current?.translation()
+    if (t) updateBlip(carId, t.x, t.z)
+  })
 
   const he = chassisCfg.halfExtents
 

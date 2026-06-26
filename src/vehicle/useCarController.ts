@@ -22,6 +22,13 @@ import {
 const DOWN = new THREE.Vector3(0, -1, 0)
 const AXLE = new THREE.Vector3(-1, 0, 0)
 
+// scratch objects for flip recovery (reused, no per-step allocation)
+const recUp = new THREE.Vector3()
+const recFwd = new THREE.Vector3()
+const recQuat = new THREE.Quaternion()
+const recUpright = new THREE.Quaternion()
+const recEuler = new THREE.Euler()
+
 export interface CarControllerOptions {
   chassisRef: React.RefObject<RapierRigidBody>
   wheelRefs: React.RefObject<Object3D>[]
@@ -49,6 +56,7 @@ export function useCarController({
   const controllerRef = useRef<DynamicRayCastVehicleController | null>(null)
   const steerCurrent = useRef(0)
   const engineCurrent = useRef(0)
+  const tipTimer = useRef(0)
 
   // Build the vehicle controller once the chassis rigid body exists.
   useEffect(() => {
@@ -130,9 +138,12 @@ export function useCarController({
         engine = input.throttle * tuning.enginePower
       }
       if (input.brake > 0) {
-        // brake when moving forward, otherwise drive in reverse
-        if (speed > 1) brake = input.brake * drive.brakeForce
-        else engine = -input.brake * drive.reverseForce
+        brake = Math.max(brake, input.brake * drive.brakeForce)
+      }
+      if (input.reverse) {
+        // brake to a stop first if still rolling forward, then drive backwards
+        if (speed > 1.5) brake = Math.max(brake, drive.brakeForce)
+        else engine = -drive.reverseForce
       }
     }
     // light engine braking / rolling resistance when coasting
@@ -171,6 +182,30 @@ export function useCarController({
     if (avMag > drive.maxAngVel) {
       const k = drive.maxAngVel / avMag
       body.setAngvel({ x: av.x * k, y: av.y * k, z: av.z * k }, true)
+    }
+
+    // --- Flip recovery: if the car has been on its side/roof for a moment,
+    // right it in place, preserving its heading. ---
+    const rot = body.rotation()
+    recQuat.set(rot.x, rot.y, rot.z, rot.w)
+    recUp.set(0, 1, 0).applyQuaternion(recQuat)
+    if (recUp.y < drive.flipUpThreshold) {
+      tipTimer.current += world.timestep
+    } else {
+      tipTimer.current = 0
+    }
+    if (tipTimer.current > drive.flipRecoverTime) {
+      recFwd.set(0, 0, 1).applyQuaternion(recQuat)
+      const yaw = Math.atan2(recFwd.x, recFwd.z)
+      recUpright.setFromEuler(recEuler.set(0, yaw, 0))
+      const t = body.translation()
+      body.setTranslation({ x: t.x, y: t.y + 1.2, z: t.z }, true)
+      body.setRotation({ x: recUpright.x, y: recUpright.y, z: recUpright.z, w: recUpright.w }, true)
+      body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+      const lv = body.linvel()
+      body.setLinvel({ x: lv.x * 0.3, y: 0, z: lv.z * 0.3 }, true)
+      steerCurrent.current = 0
+      tipTimer.current = 0
     }
   })
 

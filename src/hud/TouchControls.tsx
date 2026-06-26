@@ -82,13 +82,13 @@ export function TouchControls() {
 
       <div className="pedals">
         <button
-          className="pedal hand"
+          className="pedal reverse"
           {...press(
-            () => (touch.handbrake = true),
-            () => (touch.handbrake = false),
+            () => (touch.reverse = true),
+            () => (touch.reverse = false),
           )}
         >
-          DRIFT
+          REV
         </button>
         <button
           className="pedal brake"

@@ -4,9 +4,11 @@ export interface InputState {
   steer: number
   /** 0 .. 1 */
   throttle: number
-  /** 0 .. 1 (also used for reverse when standing still) */
+  /** 0 .. 1 — slows the car (no longer auto-reverses) */
   brake: number
-  /** locks the rear wheels and breaks traction for drifting */
+  /** drive backwards */
+  reverse: boolean
+  /** locks the rear wheels and breaks traction for drifting (keyboard only) */
   handbrake: boolean
 }
 
@@ -23,5 +25,5 @@ export interface CarStanding {
 }
 
 export function createInput(): InputState {
-  return { steer: 0, throttle: 0, brake: 0, handbrake: false }
+  return { steer: 0, throttle: 0, brake: 0, reverse: false, handbrake: false }
 }

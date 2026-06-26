@@ -82,14 +82,17 @@ export function useAIController({ bodyRef, skill = 0.85, startIndex = 0 }: AIOpt
     }
     // drift into very sharp corners
     input.current.handbrake = corner01 > 0.85 && speed > 10
+    input.current.reverse = false
 
-    // stuck recovery: if barely moving for a while, reverse briefly
+    // stuck recovery: if barely moving for a while, back up and turn out
     const now = lastStep.current++
     if (speed < 1.5) stuckTimer.current += 1
     else stuckTimer.current = 0
     if (stuckTimer.current > 90) {
       input.current.throttle = 0
-      input.current.brake = 1 // reverse (handled by controller when stopped)
+      input.current.brake = 0
+      input.current.handbrake = false
+      input.current.reverse = true
       input.current.steer *= -1
       if (stuckTimer.current > 150) stuckTimer.current = 0
     }
